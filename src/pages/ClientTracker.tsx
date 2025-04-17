@@ -42,14 +42,14 @@ const ClientTracker = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-12 px-4">
-      <div className="max-w-3xl mx-auto text-center mb-10">
+      {/* <div className="max-w-3xl mx-auto text-center mb-10">
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
           CMT AI Project Tracker
         </h1>
         <p className="text-gray-600 text-lg max-w-2xl mx-auto">
           Enter your project's Reference ID to check the current status of your website project.
         </p>
-      </div>
+      </div> */}
       
       <Card className="max-w-2xl mx-auto shadow-lg border-2 border-gray-100">
         <CardHeader>
@@ -166,12 +166,12 @@ const ClientTracker = () => {
           )}
         </CardContent>
       </Card>
-      
+{/*       
       <div className="text-center mt-8">
         <Link to="/login" className="text-primary hover:underline text-sm">
           Team login
         </Link>
-      </div>
+      </div> */}
     </div>
   );
 };
