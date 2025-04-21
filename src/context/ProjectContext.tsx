@@ -80,7 +80,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-  const BASE_URL = "https://project-flow-backend.vercel.app//api";
+  const BASE_URL = "https://project-flow-backend.vercel.app/api";
 
   // Fetch projects from backend
   const fetchProjects = async () => {

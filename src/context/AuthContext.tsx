@@ -31,7 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false); // ✅ add this
 
-  const BASE_URL = "https://project-flow-backend.vercel.app//api";
+  const BASE_URL = "https://project-flow-backend.vercel.app/api";
 
   // Load user on mount
   useEffect(() => {
