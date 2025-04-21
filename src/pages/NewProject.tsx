@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -31,11 +30,22 @@ const NewProject = () => {
     status: "requirements",
   });
 
+  // Format phone number to remove any non-digit characters
+  const formatPhoneNumber = (phone: string) => {
+    return phone.replace(/\D/g, '');
+  };
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === 'clientPhone') {
+      // Format phone number as user types
+      const formattedPhone = formatPhoneNumber(value);
+      setFormData((prev) => ({ ...prev, [name]: formattedPhone }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -46,11 +56,11 @@ const NewProject = () => {
     const payload = {
       clientName: formData.clientName,
       clientEmail: formData.clientEmail,
-      clientPhone: formData.clientPhone,
+      clientPhone: formatPhoneNumber(formData.clientPhone), // Ensure phone is formatted
       description: formData.description,
       requirements: formData.requirements,
       createdBy: user._id,
-      status: formData.status as ProjectStatus, // 👈 Fix here
+      status: formData.status as ProjectStatus,
     };
     
   
@@ -120,10 +130,12 @@ const NewProject = () => {
                 <Input
                   id="clientPhone"
                   name="clientPhone"
-                  placeholder="e.g. 555-123-4567"
+                  placeholder="Enter 10 digit phone number"
                   value={formData.clientPhone}
                   onChange={handleChange}
                   required
+                  maxLength={10}
+                  pattern="[0-9]*"
                 />
               </div>
 

@@ -30,7 +30,7 @@ interface Developer {
 
 const ProjectApproval = () => {
   const navigate = useNavigate();
-  const { projects, approveProject, rejectProject } = useProjects();
+  const { projects, approveProject, deleteProject } = useProjects();
   const { getAllDevelopers } = useAuth();
   const { toast } = useToast();
 
@@ -38,6 +38,8 @@ const ProjectApproval = () => {
   const [developers, setDevelopers] = useState<Developer[]>([]);
   const [developer, setDeveloper] = useState<string | null>(null);
   const [deadline, setDeadline] = useState<string>("");
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [projectToReject, setProjectToReject] = useState<string | null>(null);
 
   // Fetch developers when the component mounts
   useEffect(() => {
@@ -59,6 +61,7 @@ const ProjectApproval = () => {
 
   // Get all unapproved projects
   const pendingProjects = projects.filter(project => !project.approved);
+  
   const handleApprove = () => {
     if (selectedProject && developer && deadline) {
       // Format the date to ensure it's in ISO format
@@ -73,7 +76,28 @@ const ProjectApproval = () => {
   };
   
   const handleReject = (projectId: string) => {
-    rejectProject(projectId);
+    setProjectToReject(projectId);
+    setShowRejectModal(true);
+  };
+
+  const confirmReject = async () => {
+    if (projectToReject) {
+      try {
+        await deleteProject(projectToReject);
+        toast({
+          title: "Success",
+          description: "Project has been rejected and deleted.",
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to reject project.",
+          variant: "destructive",
+        });
+      }
+    }
+    setShowRejectModal(false);
+    setProjectToReject(null);
   };
 
   return (
@@ -157,6 +181,7 @@ const ProjectApproval = () => {
           </div>
         )}
 
+        {/* Approval Dialog */}
         <Dialog open={!!selectedProject} onOpenChange={(open) => !open && setSelectedProject(null)}>
           <DialogContent>
             <DialogHeader>
@@ -200,11 +225,31 @@ const ProjectApproval = () => {
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setSelectedProject(null)}>
+              <Button variant="outline" onClick={() => setSelectedProject(null)}>
                 Cancel
               </Button>
-              <Button type="button" onClick={handleApprove} disabled={!developer || !deadline}>
+              <Button onClick={handleApprove} disabled={!developer || !deadline}>
                 Assign Project
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Rejection Confirmation Dialog */}
+        <Dialog open={showRejectModal} onOpenChange={setShowRejectModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Rejection</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to reject and delete this project? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowRejectModal(false)}>
+                No, Cancel
+              </Button>
+              <Button variant="destructive" onClick={confirmReject}>
+                Yes, Reject Project
               </Button>
             </DialogFooter>
           </DialogContent>

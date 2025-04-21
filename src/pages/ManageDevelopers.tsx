@@ -16,14 +16,22 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { UserPlus, Users, FolderGit2 } from "lucide-react";
+import { UserPlus, Users, FolderGit2, Trash2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useProjects } from "@/context/ProjectContext";
 import { Navbar } from "@/components/Navbar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 
 const ManageDevelopers = () => {
-  const { createDeveloper, getAllDevelopers } = useAuth();
+  const { createDeveloper, getAllDevelopers, deleteDeveloper } = useAuth();
   const { projects } = useProjects();
   const { toast } = useToast();
 
@@ -32,6 +40,8 @@ const ManageDevelopers = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [developerToDelete, setDeveloperToDelete] = useState(null);
 
   // Fetch developers when the component mounts
   useEffect(() => {
@@ -73,6 +83,36 @@ const ManageDevelopers = () => {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const openDeleteModal = (developer) => {
+    setDeveloperToDelete(developer);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteDeveloper = async () => {
+    if (!developerToDelete) return;
+    
+    try {
+      await deleteDeveloper(developerToDelete._id);
+      toast({ 
+        title: "Success", 
+        description: "Developer deleted successfully" 
+      });
+      
+      // Refresh the developers list
+      const updatedList = await getAllDevelopers();
+      setDevelopers(updatedList);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete developer",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteModalOpen(false);
+      setDeveloperToDelete(null);
     }
   };
 
@@ -165,6 +205,7 @@ const ManageDevelopers = () => {
                       <TableHead>Name</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead className="text-right">Projects</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -177,6 +218,16 @@ const ManageDevelopers = () => {
                             <FolderGit2 className="h-4 w-4 mr-1 text-gray-500" />
                             <span className="font-medium">{getProjectCount(developer._id)}</span>
                           </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openDeleteModal(developer)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -191,6 +242,26 @@ const ManageDevelopers = () => {
           </Card>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Developer</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete {developerToDelete?.name}? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteDeveloper}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

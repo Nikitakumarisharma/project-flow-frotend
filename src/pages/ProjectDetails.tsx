@@ -33,7 +33,15 @@ import {
   Key,
   RefreshCw,
 } from "lucide-react";
-import { toast } from "@/components/ui/use-toast";
+import { toast, useToast } from "@/components/ui/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const ProjectDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -46,6 +54,7 @@ const ProjectDetails = () => {
     addCredential,
     updateCompletionDate,
     updateRenewalDate,
+    deleteProject,
   } = useProjects();
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -57,6 +66,8 @@ const ProjectDetails = () => {
   const [credentialValue, setCredentialValue] = useState("");
   const [completionDate, setCompletionDate] = useState("");
   const [renewalDate, setRenewalDate] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const { toast: useToastToast } = useToast();
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -70,7 +81,7 @@ const ProjectDetails = () => {
         }
       } catch (error) {
         console.error("Failed to fetch project:", error);
-        toast({
+        useToastToast({
           title: "Error",
           description: "Failed to load project details",
           variant: "destructive",
@@ -140,12 +151,12 @@ const ProjectDetails = () => {
       setNote("");
       setIsPublic(false);
 
-      toast({
+      useToastToast({
         title: "Success",
         description: "Note added successfully",
       });
     } catch (error) {
-      toast({
+      useToastToast({
         title: "Error",
         description: "Failed to add note",
         variant: "destructive",
@@ -197,6 +208,24 @@ const ProjectDetails = () => {
     updateRenewalDate(project._id, renewalDate);
   };
 
+  const handleDelete = async () => {
+    try {
+      await deleteProject(project._id);
+      useToastToast({
+        title: "Success",
+        description: "Project has been deleted successfully.",
+      });
+      navigate("/dashboard");
+    } catch (error) {
+      useToastToast({
+        title: "Error",
+        description: "Failed to delete project.",
+        variant: "destructive",
+      });
+    }
+    setShowDeleteModal(false);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -212,13 +241,22 @@ const ProjectDetails = () => {
             </div>
           </div>
 
-          <Button
-            variant="outline"
-            onClick={() => navigate("/dashboard")}
-            className="mt-4 md:mt-0"
-          >
-            Back to Dashboard
-          </Button>
+          <div className="flex gap-2 mt-4 md:mt-0">
+            <Button
+              variant="outline"
+              onClick={() => navigate("/dashboard")}
+            >
+              Back to Dashboard
+            </Button>
+            {user?.role === "cto" && (
+              <Button
+                variant="destructive"
+                onClick={() => setShowDeleteModal(true)}
+              >
+                Delete Project
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="grid gap-6 md:grid-cols-3 mb-6">
@@ -723,6 +761,26 @@ const ProjectDetails = () => {
             </>
           )}
         </Tabs>
+
+        {/* Delete Confirmation Modal */}
+        <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Project</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete this project? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowDeleteModal(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleDelete}>
+                Delete Project
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

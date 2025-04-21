@@ -20,6 +20,7 @@ interface AuthContextType {
   createDeveloper: (name: string, email: string, password: string) => Promise<void>;
   getAllDevelopers: () => Promise<User[]>;
   getDeveloperById: (id: string) => Promise<User | null>;
+  deleteDeveloper: (id: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -30,7 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false); // ✅ add this
 
-  const BASE_URL = "https://project-flow-backend.vercel.app/api";
+  const BASE_URL = "https://project-flow-backend.vercel.app//api";
 
   // Load user on mount
   useEffect(() => {
@@ -128,6 +129,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const deleteDeveloper = async (id: string) => {
+    try {
+      await axios.delete(`${BASE_URL}/users/deleteUser/${id}`);
+    } catch (err) {
+      throw new Error("Failed to delete developer");
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -139,6 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         createDeveloper,
         getAllDevelopers,
         getDeveloperById,
+        deleteDeveloper,
       }}
     >
       {children}

@@ -80,7 +80,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-  const BASE_URL = "https://project-flow-backend.vercel.app/api";
+  const BASE_URL = "https://project-flow-backend.vercel.app//api";
 
   // Fetch projects from backend
   const fetchProjects = async () => {
@@ -451,22 +451,20 @@ const getNotesByProjectId = async (projectId: string): Promise<ProjectNote[]> =>
 
   const deleteProject = async (projectId: string) => {
     try {
-      const response = await fetch(`${BASE_URL}/projects/${projectId}`, {
-        method: "DELETE",
-      });
+      const response = await axios.delete(`${BASE_URL}/projects/deleteProject/${projectId}`);
 
-      if (!response.ok) {
-        throw new Error("Failed to delete project");
+      if (response.data.success) {
+        setProjects((prevProjects) =>
+          prevProjects.filter((p) => p._id !== projectId)
+        );
+
+        toast({
+          title: "Success",
+          description: "Project deleted successfully!",
+        });
+      } else {
+        throw new Error(response.data.message || "Failed to delete project");
       }
-
-      setProjects((prevProjects) =>
-        prevProjects.filter((p) => p._id !== projectId)
-      );
-
-      toast({
-        title: "Success",
-        description: "Project deleted successfully!",
-      });
     } catch (error) {
       console.error("Error deleting project:", error);
       toast({
@@ -474,6 +472,7 @@ const getNotesByProjectId = async (projectId: string): Promise<ProjectNote[]> =>
         description: "Failed to delete project",
         variant: "destructive",
       });
+      throw error;
     }
   };
 
