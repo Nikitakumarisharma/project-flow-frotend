@@ -21,6 +21,7 @@ interface AuthContextType {
   getAllDevelopers: () => Promise<User[]>;
   getDeveloperById: (id: string) => Promise<User | null>;
   deleteDeveloper: (id: string) => Promise<void>;
+  updateDeveloper: (id: string, data: { name?: string; email?: string; password?: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -32,6 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAuthenticated, setIsAuthenticated] = useState(false); // ✅ add this
 
   const BASE_URL = "https://project-flow-backend.vercel.app/api";
+  // const BASE_URL = "http://localhost:4000/api";
 
   // Load user on mount
   useEffect(() => {
@@ -137,6 +139,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateDeveloper = async (id: string, data: { name?: string; email?: string; password?: string }) => {
+    try {
+      await axios.put(`${BASE_URL}/users/updateUser/${id}`, data);
+    } catch (err) {
+      throw new Error("Failed to update developer");
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -149,6 +159,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         getAllDevelopers,
         getDeveloperById,
         deleteDeveloper,
+        updateDeveloper,
       }}
     >
       {children}

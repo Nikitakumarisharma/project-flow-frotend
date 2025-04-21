@@ -69,6 +69,7 @@ interface ProjectContextType {
   addCredential: (projectId: string, credential: Omit<Credential, "_id" | "dateAdded">) => void;
   updateCompletionDate: (projectId: string, date: string) => void;
   updateRenewalDate: (projectId: string, date: string) => void;
+  updateProjectAssignment: (projectId: string, developerId: string) => Promise<void>;
 }
 
 const ProjectContext = createContext<ProjectContextType>({} as ProjectContextType);
@@ -80,6 +81,8 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  
+  // const BASE_URL = "http://localhost:4000/api";
   const BASE_URL = "https://project-flow-backend.vercel.app/api";
 
   // Fetch projects from backend
@@ -476,6 +479,41 @@ const getNotesByProjectId = async (projectId: string): Promise<ProjectNote[]> =>
     }
   };
 
+  const updateProjectAssignment = async (projectId: string, developerId: string) => {
+    try {
+      const response = await axios.put(
+        `${BASE_URL}/projects/assignUser/${projectId}`,
+        { assignedTo: developerId },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      if (response.data.success) {
+        const updatedProject = response.data.data;
+        setProjects((prevProjects) =>
+          prevProjects.map((project) =>
+            project._id === projectId ? updatedProject : project
+          )
+        );
+        toast({
+          title: "Success",
+          description: "Developer assignment updated successfully",
+        });
+      }
+    } catch (error) {
+      console.error("Error updating project assignment:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update developer assignment",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
   useEffect(() => {
     fetchProjects();
   }, []);
@@ -501,6 +539,7 @@ const getNotesByProjectId = async (projectId: string): Promise<ProjectNote[]> =>
         addCredential,
         updateCompletionDate,
         updateRenewalDate,
+        updateProjectAssignment,
       }}
     >
       {children}

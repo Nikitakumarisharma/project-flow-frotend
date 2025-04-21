@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { UserPlus, Users, FolderGit2, Trash2 } from "lucide-react";
+import { UserPlus, Users, FolderGit2, Trash2, Eye, EyeOff, Edit2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useProjects } from "@/context/ProjectContext";
 import { Navbar } from "@/components/Navbar";
@@ -31,7 +31,7 @@ import {
 
 
 const ManageDevelopers = () => {
-  const { createDeveloper, getAllDevelopers, deleteDeveloper } = useAuth();
+  const { createDeveloper, getAllDevelopers, deleteDeveloper, updateDeveloper } = useAuth();
   const { projects } = useProjects();
   const { toast } = useToast();
 
@@ -42,6 +42,9 @@ const ManageDevelopers = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [developerToDelete, setDeveloperToDelete] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [selectedDeveloper, setSelectedDeveloper] = useState(null);
 
   // Fetch developers when the component mounts
   useEffect(() => {
@@ -61,24 +64,50 @@ const ManageDevelopers = () => {
     fetchDevelopers();
   }, [getAllDevelopers, toast]);
 
-  const handleCreateDeveloper = async (e: React.FormEvent) => {
+  const resetForm = () => {
+    setName("");
+    setEmail("");
+    setPassword("");
+    setEditMode(false);
+    setSelectedDeveloper(null);
+  };
+
+  const handleEditDeveloper = (developer) => {
+    setEditMode(true);
+    setSelectedDeveloper(developer);
+    setName(developer.name);
+    setEmail(developer.email);
+    setPassword(""); // Clear password field in edit mode
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      await createDeveloper(name, email, password);
-      toast({ title: "Developer account created successfully" });
+      if (editMode && selectedDeveloper) {
+        // Update existing developer
+        const updateData = {
+          name,
+          email,
+          ...(password && { password }) // Only include password if it's been changed
+        };
+        
+        await updateDeveloper(selectedDeveloper._id, updateData);
+        toast({ title: "Developer updated successfully" });
+      } else {
+        // Create new developer
+        await createDeveloper(name, email, password);
+        toast({ title: "Developer account created successfully" });
+      }
 
       const updatedList = await getAllDevelopers();
       setDevelopers(updatedList);
-
-      setName("");
-      setEmail("");
-      setPassword("");
+      resetForm();
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to create developer",
+        description: `Failed to ${editMode ? 'update' : 'create'} developer`,
         variant: "destructive",
       });
     } finally {
@@ -138,12 +167,21 @@ const ManageDevelopers = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <UserPlus className="h-5 w-5 mr-2" />
-                Add New Developer
+                {editMode ? (
+                  <>
+                    <Edit2 className="h-5 w-5 mr-2" />
+                    Edit Developer
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-5 w-5 mr-2" />
+                    Add New Developer
+                  </>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleCreateDeveloper} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <label htmlFor="name" className="text-sm font-medium">
                     Full Name
@@ -169,23 +207,52 @@ const ManageDevelopers = () => {
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="password" className="text-sm font-medium">
-                    Password
+                    {editMode ? "New Password (leave blank to keep unchanged)" : "Password"}
                   </label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Set initial password"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder={editMode ? "Enter new password" : "Set initial password"}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-2 top-1/2 -translate-y-1/2"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? "Creating Account..." : "Create Developer Account"}
-                </Button>
+
+                <div className="flex gap-2">
+                  <Button
+                    type="submit"
+                    className="flex-1"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting 
+                      ? (editMode ? "Updating..." : "Creating...") 
+                      : (editMode ? "Update Developer" : "Create Developer Account")}
+                  </Button>
+                  {editMode && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={resetForm}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                </div>
               </form>
             </CardContent>
           </Card>
@@ -220,14 +287,24 @@ const ManageDevelopers = () => {
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openDeleteModal(developer)}
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditDeveloper(developer)}
+                              className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openDeleteModal(developer)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}

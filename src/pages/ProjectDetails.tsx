@@ -32,6 +32,7 @@ import {
   FileText,
   Key,
   RefreshCw,
+  Pencil,
 } from "lucide-react";
 import { toast, useToast } from "@/components/ui/use-toast";
 import {
@@ -55,9 +56,10 @@ const ProjectDetails = () => {
     updateCompletionDate,
     updateRenewalDate,
     deleteProject,
-    updateProject,
+    updateProjectAssignment,
   } = useProjects();
   const { user, getAllDevelopers } = useAuth();
+  const { toast: useToastToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<ProjectStatus>("requirements");
   const [note, setNote] = useState("");
@@ -68,12 +70,9 @@ const ProjectDetails = () => {
   const [completionDate, setCompletionDate] = useState("");
   const [renewalDate, setRenewalDate] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const { toast: useToastToast } = useToast();
   const [developers, setDevelopers] = useState([]);
-  const [isAssignDeveloperModalOpen, setIsAssignDeveloperModalOpen] = useState(false);
-  const [selectedDeveloperId, setSelectedDeveloperId] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const BASE_URL = "http://localhost:4000/api";
+  const [showDeveloperSelect, setShowDeveloperSelect] = useState(false);
+  const [selectedDeveloper, setSelectedDeveloper] = useState("");
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -109,7 +108,6 @@ const ProjectDetails = () => {
         console.error("Failed to fetch developers:", error);
       }
     };
-
     fetchDevelopers();
   }, [getAllDevelopers]);
 
@@ -245,73 +243,15 @@ const ProjectDetails = () => {
     setShowDeleteModal(false);
   };
 
-  const handleAssignClick = () => {
-    if (!selectedDeveloperId) {
-      toast({
-        title: "Error",
-        description: "Please select a developer",
-        variant: "destructive",
-      });
-      return;
-    }
-    handleAssignDeveloper(selectedDeveloperId);
-  };
-
-  const handleAssignDeveloper = async (developerId: string) => {
+  const handleDeveloperChange = async (developerId: string) => {
     try {
-      setIsLoading(true);
-      console.log("Selected developer ID:", developerId);
-      console.log("Available developers:", developers);
-      
-      const developer = developers.find(d => d._id === developerId);
-      if (!developer) {
-        throw new Error("Developer not found");
-      }
-
-      // Use the BASE_URL from context
-      const response = await axios.put(
-        `${BASE_URL}/projects/assignUser/${project._id}`,
-        {
-          assignedTo: developerId,
-          deadline: project.deadline
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
-      if (response.data.success) {
-        // Update the local project state with the developer info
-        setProject({
-          ...project,
-          assignedTo: {
-            _id: developer._id,
-            name: developer.name,
-            email: developer.email
-          }
-        });
-        
-        toast({
-          title: "Success",
-          description: "Developer assigned successfully!",
-        });
-        
-        // Close the modal
-        setIsAssignDeveloperModalOpen(false);
-      } else {
-        throw new Error(response.data.message || "Failed to assign developer");
-      }
+      await updateProjectAssignment(project._id, developerId);
+      setShowDeveloperSelect(false);
+      // Refresh project data
+      const updatedProject = await getProjectById(project._id);
+      setProject(updatedProject);
     } catch (error) {
-      console.error("Error assigning developer:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to assign developer",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+      console.error("Failed to update developer assignment:", error);
     }
   };
 
@@ -389,7 +329,40 @@ const ProjectDetails = () => {
                 </div>
                 <div>
                   <span className="text-sm text-gray-500">Assigned to:</span>
-                  <p className="font-medium">{project.assignedTo?.name || "Not Assigned"}</p>
+                  <div className="flex items-center gap-2">
+                    {showDeveloperSelect ? (
+                      <Select
+                        value={selectedDeveloper}
+                        onValueChange={handleDeveloperChange}
+                        onOpenChange={(open) => !open && setShowDeveloperSelect(false)}
+                      >
+                        <SelectTrigger className="w-[200px]">
+                          <SelectValue placeholder="Select developer" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {developers.map((dev) => (
+                            <SelectItem key={dev._id} value={dev._id}>
+                              {dev.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <>
+                        <p className="font-medium">{project.assignedTo?.name || "Not Assigned"}</p>
+                        {user?.role === "cto" && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => setShowDeveloperSelect(true)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <span className="text-sm text-gray-500">Created on:</span>
