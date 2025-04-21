@@ -113,7 +113,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
 
       toast({
         title: "✅ Project Created",
-        description: `Saved to backend`,
+        description: `Please check on Dashboard`,
       });
 
       // Fetch updated list after backend responds successfully
