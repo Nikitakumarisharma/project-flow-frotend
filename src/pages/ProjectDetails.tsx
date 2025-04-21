@@ -55,8 +55,9 @@ const ProjectDetails = () => {
     updateCompletionDate,
     updateRenewalDate,
     deleteProject,
+    updateProject,
   } = useProjects();
-  const { user } = useAuth();
+  const { user, getAllDevelopers } = useAuth();
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<ProjectStatus>("requirements");
   const [note, setNote] = useState("");
@@ -68,6 +69,11 @@ const ProjectDetails = () => {
   const [renewalDate, setRenewalDate] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const { toast: useToastToast } = useToast();
+  const [developers, setDevelopers] = useState([]);
+  const [isAssignDeveloperModalOpen, setIsAssignDeveloperModalOpen] = useState(false);
+  const [selectedDeveloperId, setSelectedDeveloperId] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const BASE_URL = "http://localhost:4000/api";
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -93,6 +99,19 @@ const ProjectDetails = () => {
   
     fetchProject();
   }, [id, getProjectById]);
+
+  useEffect(() => {
+    const fetchDevelopers = async () => {
+      try {
+        const devs = await getAllDevelopers();
+        setDevelopers(devs);
+      } catch (error) {
+        console.error("Failed to fetch developers:", error);
+      }
+    };
+
+    fetchDevelopers();
+  }, [getAllDevelopers]);
 
   if (loading) {
     return (
@@ -224,6 +243,76 @@ const ProjectDetails = () => {
       });
     }
     setShowDeleteModal(false);
+  };
+
+  const handleAssignClick = () => {
+    if (!selectedDeveloperId) {
+      toast({
+        title: "Error",
+        description: "Please select a developer",
+        variant: "destructive",
+      });
+      return;
+    }
+    handleAssignDeveloper(selectedDeveloperId);
+  };
+
+  const handleAssignDeveloper = async (developerId: string) => {
+    try {
+      setIsLoading(true);
+      console.log("Selected developer ID:", developerId);
+      console.log("Available developers:", developers);
+      
+      const developer = developers.find(d => d._id === developerId);
+      if (!developer) {
+        throw new Error("Developer not found");
+      }
+
+      // Use the BASE_URL from context
+      const response = await axios.put(
+        `${BASE_URL}/projects/assignUser/${project._id}`,
+        {
+          assignedTo: developerId,
+          deadline: project.deadline
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      if (response.data.success) {
+        // Update the local project state with the developer info
+        setProject({
+          ...project,
+          assignedTo: {
+            _id: developer._id,
+            name: developer.name,
+            email: developer.email
+          }
+        });
+        
+        toast({
+          title: "Success",
+          description: "Developer assigned successfully!",
+        });
+        
+        // Close the modal
+        setIsAssignDeveloperModalOpen(false);
+      } else {
+        throw new Error(response.data.message || "Failed to assign developer");
+      }
+    } catch (error) {
+      console.error("Error assigning developer:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to assign developer",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
