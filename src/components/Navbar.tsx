@@ -20,7 +20,7 @@ export function Navbar() {
         <div className="flex items-center">
           <Link to="/dashboard" className="flex items-center">
             <span className="self-center text-xl font-semibold whitespace-nowrap text-primary">
-              CMT AI Project Pulse
+              CMT AI Project Pulse 
             </span>
           </Link>
         </div>

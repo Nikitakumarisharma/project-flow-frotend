@@ -61,7 +61,7 @@ const ClientTracker = () => {
         <CardContent>
           <div className="flex space-x-2 mb-6">
             <Input
-              placeholder="e.g. CMT-123456-001"
+              placeholder="e.g. your Contact No"
               value={referenceId}
               onChange={(e) => setReferenceId(e.target.value)}
               onKeyPress={handleKeyPress}
