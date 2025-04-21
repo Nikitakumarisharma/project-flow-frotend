@@ -31,8 +31,8 @@ export function ProjectCard({ projects }: ProjectCardProps) {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <h3 className="font-medium text-lg">{project.clientName}</h3>
-                    <span className="reference-id">{project.referenceId}</span>
-                  </div>
+                    <span className="reference-id">ref Id : {project.referenceId}</span>
+                    </div>
 
                   <p className="text-sm text-gray-600">
                     {project.description.substring(0, 100)}
