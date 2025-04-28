@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Card,
@@ -15,32 +15,73 @@ import {
   Clock,
   Activity,
   Users,
+  Lock,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useProjects } from "@/context/ProjectContext";
 import { ProjectCard } from "@/components/ProjectCard";
 import { Navbar } from "@/components/Navbar";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, updateDeveloper } = useAuth();
   const { projects } = useProjects();
+  const { toast } = useToast();
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  // Filter projects based on user role
-  const filteredProjects = projects.filter((project) => {
-    switch (user?.role) {
-      case "sales":
-        return project.createdBy === user._id;
-      case "cto":
-        return true;
-      case "developer":
-        return project.assignedTo?._id === user._id;
-      default:
-        return false;
-    }
-  });
+  // Filter and sort projects based on user role
+  const filteredProjects = projects
+    .filter((project) => {
+      switch (user?.role) {
+        case "sales":
+          return project.createdBy === user._id;
+        case "cto":
+          return true;
+        case "developer":
+          return project.assignedTo?._id === user._id;
+        default:
+          return false;
+      }
+    })
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   // Filter for pending approval
   const pendingApproval = projects.filter((p) => !p.approved);
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    setIsUpdating(true);
+    try {
+      await updateDeveloper(user._id, { password: newPassword });
+      toast({ title: "Password updated successfully" });
+      setNewPassword("");
+      setShowPasswordModal(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update password",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -82,6 +123,10 @@ const Dashboard = () => {
                     Manage Developers
                   </Button>
                 </Link>
+                <Button variant="outline" onClick={() => setShowPasswordModal(true)}>
+                  <Lock className="h-4 w-4 mr-2" />
+                  Change Password
+                </Button>
               </>
             )}
           </div>
@@ -157,6 +202,60 @@ const Dashboard = () => {
           </Card>
         </div>
       </div>
+
+      {/* Change Password Modal */}
+      <Dialog open={showPasswordModal} onOpenChange={setShowPasswordModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+            <DialogDescription>
+              Enter your new password below
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handlePasswordChange} className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="newPassword" className="text-sm font-medium">
+                New Password
+              </label>
+              <div className="relative">
+                <Input
+                  id="newPassword"
+                  type={showPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password"
+                  required
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 top-1/2 -translate-y-1/2"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowPasswordModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isUpdating}>
+                {isUpdating ? "Updating..." : "Update Password"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

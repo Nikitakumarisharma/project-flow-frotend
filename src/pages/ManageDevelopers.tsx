@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { UserPlus, Users, FolderGit2, Trash2, Eye, EyeOff, Edit2 } from "lucide-react";
+import { UserPlus, Users, FolderGit2, Trash2, Eye, EyeOff, Edit2, Lock, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useProjects } from "@/context/ProjectContext";
 import { Navbar } from "@/components/Navbar";
@@ -31,7 +31,7 @@ import {
 
 
 const ManageDevelopers = () => {
-  const { createDeveloper, getAllDevelopers, deleteDeveloper, updateDeveloper } = useAuth();
+  const { createDeveloper, getAllDevelopers, deleteDeveloper, updateDeveloper, user } = useAuth();
   const { projects } = useProjects();
   const { toast } = useToast();
 
@@ -45,6 +45,11 @@ const ManageDevelopers = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedDeveloper, setSelectedDeveloper] = useState(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+  const developersPerPage = 4;
 
   // Fetch developers when the component mounts
   useEffect(() => {
@@ -152,6 +157,40 @@ const ManageDevelopers = () => {
     ).length;
   };
 
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    setIsUpdatingPassword(true);
+    try {
+      await updateDeveloper(user._id, { password: newPassword });
+      toast({ title: "Password updated successfully" });
+      setNewPassword("");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update password",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
+
+  const totalPages = Math.ceil(developers.length / developersPerPage);
+  const currentDevelopers = developers.slice(
+    currentPage * developersPerPage,
+    (currentPage + 1) * developersPerPage
+  );
+
+  const handlePrevPage = () => {
+    setCurrentPage((prev) => (prev > 0 ? prev - 1 : prev));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => (prev < totalPages - 1 ? prev + 1 : prev));
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -257,66 +296,141 @@ const ManageDevelopers = () => {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Users className="h-5 w-5 mr-2" />
-                Developer Team
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {developers.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead className="text-right">Projects</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {developers.map((developer) => (
-                      <TableRow key={developer._id}>
-                        <TableCell className="font-medium">{developer.name}</TableCell>
-                        <TableCell>{developer.email}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end">
-                            <FolderGit2 className="h-4 w-4 mr-1 text-gray-500" />
-                            <span className="font-medium">{getProjectCount(developer._id)}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEditDeveloper(developer)}
-                              className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => openDeleteModal(developer)}
-                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Users className="h-5 w-5 mr-2" />
+                    Developer Team
+                  </div>
+                  {developers.length > developersPerPage && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handlePrevPage}
+                        disabled={currentPage === 0}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <span className="text-sm text-gray-500">
+                        {currentPage + 1} of {totalPages}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleNextPage}
+                        disabled={currentPage === totalPages - 1}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {currentDevelopers.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead className="text-right">Projects</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-6">
-                  <p className="text-gray-500">No developers added yet</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {currentDevelopers.map((developer) => (
+                        <TableRow key={developer._id}>
+                          <TableCell className="font-medium">{developer.name}</TableCell>
+                          <TableCell>{developer.email}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end">
+                              <FolderGit2 className="h-4 w-4 mr-1 text-gray-500" />
+                              <span className="font-medium">{getProjectCount(developer._id)}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEditDeveloper(developer)}
+                                className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => openDeleteModal(developer)}
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-6">
+                    <p className="text-gray-500">No developers added yet</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Lock className="h-5 w-5 mr-2" />
+                  Change Your Password
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handlePasswordChange} className="space-y-4">
+                  <div className="space-y-2">
+                    <label htmlFor="newPassword" className="text-sm font-medium">
+                      New Password
+                    </label>
+                    <div className="relative">
+                      <Input
+                        id="newPassword"
+                        type={showNewPassword ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Enter new password"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-1/2 -translate-y-1/2"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                      >
+                        {showNewPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isUpdatingPassword}
+                  >
+                    {isUpdatingPassword ? "Updating..." : "Update Password"}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card> */}
+          </div>
         </div>
       </div>
 
